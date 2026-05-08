@@ -46,9 +46,6 @@
     },
     "windows": {
       "wix": {}
-    },
-    "linux": {
-      "categories": ["Utility"]
     }
   }
 }
