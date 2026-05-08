@@ -14,16 +14,10 @@ jobs:
         include:
           - os: ubuntu-latest
             target: x86_64-unknown-linux-gnu
-            artifact: desktop-pet_amd64.AppImage
-            ext: AppImage
           - os: macos-latest
             target: aarch64-apple-darwin
-            artifact: desktop-pet_arm64.dmg
-            ext: dmg
           - os: windows-latest
             target: x86_64-pc-windows-msvc
-            artifact: desktop-pet_amd64.msi
-            ext: msi
 
     runs-on: ${{ matrix.os }}
     steps:
@@ -46,12 +40,27 @@ jobs:
       - name: Install frontend deps
         run: bun install
 
-      - name: Build Tauri
+      - name: Build Tauri (macOS ad-hoc signed)
+        if: runner.os == 'macOS'
+        uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          APPLE_SIGNING_IDENTITY: "-"
+        with:
+          args: --target ${{ matrix.target }}
+
+      - name: Build Tauri (Linux / Windows)
+        if: runner.os != 'macOS'
         uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           args: --target ${{ matrix.target }}
+
+      - name: Strip quarantine attr from macOS bundle
+        if: runner.os == 'macOS'
+        run: |
+          find src-tauri/target/${{ matrix.target }}/release/bundle -name "*.app" -exec xattr -cr {} \; 2>/dev/null || true
 
       - uses: actions/upload-artifact@v4
         with:
